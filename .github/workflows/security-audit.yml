@@ -1,0 +1,60 @@
+name: Security Audit
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'requirements.txt'
+      - 'requirements/*.txt'
+      - '.github/workflows/security-audit.yml'
+  push:
+    branches:
+      - main
+  schedule:
+    # Run weekly on Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  pip-audit:
+    name: Python Dependency Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install pip-audit
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit
+
+      - name: Run pip-audit
+        run: |
+          # CVE-2026-0994: protobuf DoS via uncontrolled recursion in json_format.ParseDict().
+          # No fix released yet (all versions <= 6.33.4 affected). Fix merged upstream (PR #25239).
+          # protobuf is a transitive dependency (firebase-admin, google-api-core, etc.).
+          # TODO: Remove --ignore-vuln once a patched protobuf version is released.
+          pip-audit --requirement requirements.txt --ignore-vuln CVE-2026-0994 --format json --output audit-report.json || true
+          pip-audit --requirement requirements.txt --ignore-vuln CVE-2026-0994
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: audit-report.json
+          retention-days: 30
+
+      - name: Check for vulnerabilities
+        run: |
+          # Exit with failure if vulnerabilities found (but allow artifact upload first)
+          pip-audit --requirement requirements.txt --ignore-vuln CVE-2026-0994 --strict

@@ -1,0 +1,134 @@
+version: '3.1'
+name: ayupilot-dev
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: "ayupilot-prometheus"
+    restart: 'no'
+    volumes:
+      - prometheus_data:/prometheus
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+
+  grafana:
+    image: grafana/grafana
+    container_name: "ayupilot-grafana"
+    environment:
+      - "GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource"
+    restart: 'no'
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - 3000:3000
+    depends_on:
+      - prometheus
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: "ayupilot-backend"
+    user: "${UID}:${GID}"
+    environment:
+      ENV: dev
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/opt/:Z
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    container_name: "ayupilot-db2"
+    restart: always
+    user: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres2
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - 5432:5432
+    expose:
+      - 5432
+    volumes:
+      - ayupilot-db2:/var/lib/postgresql/data
+
+  pgadmin:
+    container_name: "ayupilot-pgadmin"
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+    volumes:
+      - ayupilot-pgadmin:/var/lib/pgadmin
+
+  rabbit-mq:
+    image: rabbitmq:3.7-management
+    restart: always
+    container_name: "ayupilot-rabbitmq"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  celery:
+    container_name: "ayupilot-celery"
+    build: .
+    command: celery -A src worker -l INFO  -E -f /opt/logs/celery/celery.logs
+    volumes:
+      - .:/opt/
+    depends_on:
+      - rabbit-mq
+      - backend
+    environment:
+      - DJANGO_SETTINGS_MODULE=src.settings.dev
+
+  celery-beat:
+    container_name: "ayupilot-celery-beat"
+    build: .
+    command: celery -A src beat -l INFO -f /opt/logs/celery/beat.logs
+    volumes:
+      - .:/opt/
+    depends_on:
+      - rabbit-mq
+      - backend
+      - celery
+    environment:
+      - DJANGO_SETTINGS_MODULE=src.settings.dev
+  flower:
+    container_name: "ayupilot-flower"
+    build: .
+    command: celery -A src flower --port=5555
+    image: mher/flower:0.9.7
+    ports:
+      - 5555:5555
+    volumes:
+      - .:/opt/
+    depends_on:
+      - backend
+      - celery
+      - rabbit-mq
+
+  redis:
+    container_name: "ayupilot-redis"
+    image: redis
+    expose:
+      - 6379
+
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+  ayupilot-pgadmin: {}
+  ayupilot-db2: {}
+
+#   <volume_name>:
+#   <volume_name>:
