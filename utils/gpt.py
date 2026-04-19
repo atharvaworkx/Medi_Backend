@@ -6,14 +6,17 @@ import requests
 from PIL import Image
 from io import BytesIO
 
-from src.vault import credentials
-
 logger = logging.getLogger(__name__)
 
-GROK_API_KEY = os.environ.get("GROK_API_KEY")
+GROK_API_KEY = os.environ.get("GROK_API_KEY", "")
+
 if not GROK_API_KEY:
-    env = os.environ.get("ENV", "dev")
-    GROK_API_KEY = credentials.get(env, {}).get("GROK_API_KEY", "")
+    try:
+        from src.vault import credentials
+        env = os.environ.get("ENV", "dev")
+        GROK_API_KEY = credentials.get(env, {}).get("GROK_API_KEY", "")
+    except ImportError:
+        pass
 
 if GROK_API_KEY:
     logger.info("Grok AI configured successfully")

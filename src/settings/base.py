@@ -9,15 +9,13 @@ except ImportError:
     crontab = None
 
 
-# Project Name
 PROJECT_NAME = "medipilot"
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# Check if vault file is present
-if not os.path.exists('src/vault.py'):
-    print('vault file not found! \nPlease download the it.\nRefer the README for more information.')
+vault_exists = os.path.exists('src/vault.py')
+if not vault_exists and os.getenv('ENV') != 'prod':
+    print('vault file not found! \nPlease download it.\nRefer the README for more information.')
     sys.exit(1)
 
 # Create log directory

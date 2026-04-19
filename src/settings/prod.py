@@ -1,58 +1,46 @@
 from .base import *
-from src import vault
-from src.vault import credentials
+import os
+
 DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 CORS_ORIGIN_ALLOW_ALL = False
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:8080",
-]
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:3000,http://localhost:8080').split(',')
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:8080",
-]
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:5173,http://localhost:3000,http://localhost:8080').split(',')
 
 
 DATABASES = {
     "default": {
-        "ENGINE": credentials['prod']['DB_ENGINE'],
-        "NAME": credentials['prod']['DB_NAME'],
-        "USER": credentials['prod']['DB_USER'],
-        "PASSWORD": credentials['prod']['DB_PASSWORD'],
-        "HOST": credentials['prod']['DB_HOST'],  # set in docker-compose.yml
-        "PORT": credentials['prod']['DB_PORT'],  # default postgres port
+        "ENGINE": os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
+        "NAME": os.getenv('DB_NAME', 'postgres'),
+        "USER": os.getenv('DB_USER', 'postgres'),
+        "PASSWORD": os.getenv('DB_PASSWORD', 'postgres'),
+        "HOST": os.getenv('DB_HOST', 'db'),
+        "PORT": os.getenv('DB_PORT', '5432'),
     },
 }
 
-EMAIL = credentials['prod']["EMAIL"]
-PASSWORD = credentials['prod']["PASSWORD"]
+EMAIL = os.getenv('EMAIL', '')
+PASSWORD = os.getenv('PASSWORD', '')
 
-# AWS credentials
+S3_BUCKET = os.getenv('S3_BUCKET', '')
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
+REGION = os.getenv('REGION', 'us-east-1')
+AWS_URL = f"https://{S3_BUCKET}.s3.{REGION}.amazonaws.com" if S3_BUCKET else ""
 
-# PROD SECRET KEYS
-S3_BUCKET = credentials['prod']['S3_BUCKET']
-AWS_ACCESS_KEY_ID = credentials['prod']['AWS_ACCESS_KEY_ID']
-AWS_SECRET_ACCESS_KEY = credentials['prod']['AWS_SECRET_ACCESS_KEY']
-REGION = credentials['prod']['REGION']
-AWS_URL = "https://%s.s3.%s.amazonaws.com" % (S3_BUCKET, REGION)
-
-# Frontend Urls
-FRONTEND_BASE_URL = credentials['prod']['FRONTEND_BASE_URL']
-ADMIN_FRONTEND_BASE_URL = credentials['prod']['ADMIN_FRONTEND_BASE_URL']
+FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000')
+ADMIN_FRONTEND_BASE_URL = os.getenv('ADMIN_FRONTEND_BASE_URL', 'http://localhost:3000')
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-# TODO: More details on it.
+
 if not DEBUG:
     SECURE_HSTS_SECONDS = 86400
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT = False
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
