@@ -11,12 +11,13 @@ from users.models import Users
 
 print("Creating database tables...")
 try:
-    # Create tables without migrations first
+    # Drop and recreate tables
     with connection.cursor() as cursor:
+        cursor.execute("DROP TABLE IF EXISTS users CASCADE;")
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
+        
         cursor.execute("""
-            CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-            
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE users (
                 id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                 password VARCHAR(128),
                 last_login TIMESTAMP WITH TIME ZONE,
@@ -33,15 +34,6 @@ try:
                 is_verified BOOLEAN NOT NULL DEFAULT FALSE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-            );
-        """)
-        
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS django_migrations (
-                id SERIAL PRIMARY KEY,
-                app VARCHAR(255) NOT NULL,
-                name VARCHAR(255) NOT NULL,
-                applied TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             );
         """)
     
