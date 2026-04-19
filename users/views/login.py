@@ -34,9 +34,6 @@ class CustomTokenPairSerializer(TokenObtainPairSerializer):
             if not user.check_password(password):
                 raise serializers.ValidationError(_("Invalid email or password"))
 
-            from profiles.models import UserProfile
-            profile, _ = UserProfile.objects.get_or_create(userId=user)
-            
             token = RefreshToken.for_user(user)
             res_data = {
                 'refresh': str(token),
@@ -46,14 +43,14 @@ class CustomTokenPairSerializer(TokenObtainPairSerializer):
                 'lastName': user.lastName or '',
                 'email': user.email,
                 'phone': user.phone or '',
-                'age': profile.age or 0,
-                'gender': profile.gender or '',
+                'age': 0,
+                'gender': '',
             }
             return res_data
         except Users.DoesNotExist:
             raise serializers.ValidationError(_("Invalid email or password"))
         except Exception as e:
-            logger.error(f"Login error: {str(e)}")
+            logger.error(f"Login error: {str(e)}", exc_info=True)
             raise serializers.ValidationError(_("An error occurred during login"))
 
 
@@ -65,7 +62,7 @@ class LoginView(TokenObtainPairView):
         try:
             return super().post(request, *args, **kwargs)
         except Exception as e:
-            logger.error(f"Login view error: {str(e)}")
+            logger.error(f"Login view error: {str(e)}", exc_info=True)
             return Response(
                 {"detail": "An error occurred. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -90,7 +87,7 @@ class AdminLoginView(TokenObtainPairView):
             
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Admin login error: {str(e)}")
+            logger.error(f"Admin login error: {str(e)}", exc_info=True)
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
@@ -112,7 +109,7 @@ class LogoutView(APIView):
             token.blacklist()
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
-            logger.error(f"Logout error: {str(e)}")
+            logger.error(f"Logout error: {str(e)}", exc_info=True)
             return Response(
                 {"detail": "Logout failed"},
                 status=status.HTTP_400_BAD_REQUEST
