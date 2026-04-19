@@ -5,7 +5,6 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'src.settings.prod')
 django.setup()
 
-from django.core.management import call_command
 from django.db import connection
 
 print("Setting up database...")
@@ -15,9 +14,8 @@ with connection.cursor() as cursor:
     cursor.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
     
     # Drop all tables
-    cursor.execute("DROP TABLE IF EXISTS users CASCADE;")
-    cursor.execute("DROP TABLE IF EXISTS user_profiles CASCADE;")
-    cursor.execute("DROP TABLE IF EXISTS django_migrations CASCADE;")
+    cursor.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    cursor.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
     
     # Create django_migrations table
     cursor.execute("""
@@ -51,29 +49,157 @@ with connection.cursor() as cursor:
         );
     """)
     
-    # Create user_profiles table
+    # Create user_profiles table with correct field names
     cursor.execute("""
         CREATE TABLE user_profiles (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-            "userId_id" UUID REFERENCES users(id) ON DELETE CASCADE,
-            "fullName" VARCHAR(200),
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            full_name VARCHAR(200),
             age INTEGER,
+            date_of_birth DATE,
             gender VARCHAR(1),
-            height DECIMAL(5,2),
-            weight DECIMAL(5,2),
-            blood_type VARCHAR(3),
+            location VARCHAR(255),
+            height_cm INTEGER,
+            weight_kg DECIMAL(5,2),
+            blood_type VARCHAR(10),
             bio TEXT,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
     """)
     
+    # Create users_devices table
+    cursor.execute("""
+        CREATE TABLE users_devices (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            device_id VARCHAR(500),
+            token VARCHAR(500),
+            device_type VARCHAR(500),
+            device_info VARCHAR(500),
+            language VARCHAR(10),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    """)
+    
+    # Create health_images table
+    cursor.execute("""
+        CREATE TABLE health_images (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            image_type VARCHAR(50),
+            image_url VARCHAR(512),
+            s3_key VARCHAR(255),
+            upload_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            analysis_status VARCHAR(20) DEFAULT 'pending',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    """)
+    
+    # Create medical_history table
+    cursor.execute("""
+        CREATE TABLE medical_history (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            allergies TEXT,
+            chronic_conditions TEXT,
+            current_medications TEXT,
+            family_history TEXT,
+            lifestyle_factors TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    """)
+    
+    # Create ai_reports table
+    cursor.execute("""
+        CREATE TABLE ai_reports (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            report_data JSONB,
+            overall_score INTEGER,
+            dominant_prakriti VARCHAR(50),
+            dominant_vikriti VARCHAR(50),
+            is_critical BOOLEAN DEFAULT FALSE,
+            generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    """)
+    
+    # Create Django content types and auth tables
+    cursor.execute("""
+        CREATE TABLE django_content_type (
+            id SERIAL PRIMARY KEY,
+            app_label VARCHAR(100) NOT NULL,
+            model VARCHAR(100) NOT NULL,
+            UNIQUE(app_label, model)
+        );
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE auth_permission (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            content_type_id INTEGER REFERENCES django_content_type(id),
+            codename VARCHAR(100) NOT NULL,
+            UNIQUE(content_type_id, codename)
+        );
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE auth_group (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(150) UNIQUE NOT NULL
+        );
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE auth_group_permissions (
+            id SERIAL PRIMARY KEY,
+            group_id INTEGER REFERENCES auth_group(id),
+            permission_id INTEGER REFERENCES auth_permission(id),
+            UNIQUE(group_id, permission_id)
+        );
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE users_user_permissions (
+            id SERIAL PRIMARY KEY,
+            user_id UUID REFERENCES users(id),
+            permission_id INTEGER REFERENCES auth_permission(id),
+            UNIQUE(user_id, permission_id)
+        );
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE users_groups (
+            id SERIAL PRIMARY KEY,
+            user_id UUID REFERENCES users(id),
+            group_id INTEGER REFERENCES auth_group(id),
+            UNIQUE(user_id, group_id)
+        );
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE django_session (
+            session_key VARCHAR(40) PRIMARY KEY,
+            session_data TEXT NOT NULL,
+            expire_date TIMESTAMP WITH TIME ZONE NOT NULL
+        );
+    """)
+    
     # Mark migrations as applied
-    cursor.execute("INSERT INTO django_migrations (app, name) VALUES ('users', '0001_initial');")
-    cursor.execute("INSERT INTO django_migrations (app, name) VALUES ('profiles', '0001_initial');")
     cursor.execute("INSERT INTO django_migrations (app, name) VALUES ('contenttypes', '0001_initial');")
     cursor.execute("INSERT INTO django_migrations (app, name) VALUES ('auth', '0001_initial');")
     cursor.execute("INSERT INTO django_migrations (app, name) VALUES ('sessions', '0001_initial');")
+    cursor.execute("INSERT INTO django_migrations (app, name) VALUES ('users', '0001_initial');")
+    cursor.execute("INSERT INTO django_migrations (app, name) VALUES ('profiles', '0001_initial');")
+    cursor.execute("INSERT INTO django_migrations (app, name) VALUES ('medical', '0001_initial');")
+    cursor.execute("INSERT INTO django_migrations (app, name) VALUES ('images', '0001_initial');")
+    cursor.execute("INSERT INTO django_migrations (app, name) VALUES ('ai_reports', '0001_initial');")
 
 print("✓ Database tables created")
 
