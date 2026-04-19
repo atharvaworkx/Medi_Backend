@@ -1,3 +1,3 @@
-web: gunicorn src.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120 --access-logfile - --error-logfile -
+web: python manage.py runserver 0.0.0.0:8000
 worker: celery -A src worker -l INFO
 beat: celery -A src beat -l INFO
