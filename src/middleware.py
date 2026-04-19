@@ -1,57 +1,28 @@
 from django.utils.deprecation import MiddlewareMixin
-from django.core.management import call_command
 from django.db import connection
 import logging
+import subprocess
 import os
 
 logger = logging.getLogger(__name__)
 
-_migrations_run = False
+_db_setup_done = False
 
 
 class MigrationMiddleware(MiddlewareMixin):
     def process_request(self, request):
-        global _migrations_run
+        global _db_setup_done
         
-        if not _migrations_run:
+        if not _db_setup_done:
             try:
-                logger.info("Checking database tables...")
-                
-                with connection.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT EXISTS (
-                            SELECT FROM information_schema.tables 
-                            WHERE table_name = 'users'
-                        );
-                    """)
-                    users_table_exists = cursor.fetchone()[0]
-                
-                if not users_table_exists:
-                    logger.info("Running migrations on first request...")
-                    call_command('migrate', verbosity=0, interactive=False)
-                    logger.info("✓ Migrations completed")
-                
-                from users.models import Users
-                test_user, created = Users.objects.get_or_create(
-                    email='test@test.com',
-                    defaults={
-                        'firstName': 'Test',
-                        'lastName': 'User',
-                        'phone': '9876543210',
-                        'is_active': True,
-                        'isVerified': True,
-                        'level': 1,
-                    }
-                )
-                if created:
-                    test_user.set_password('test123456')
-                    test_user.save()
-                    logger.info(f"✓ Created test user: {test_user.email}")
-                
-                _migrations_run = True
-                logger.info("✓ Database initialized successfully")
+                logger.info("Running database setup...")
+                result = subprocess.run(['python', 'setup_db.py'], capture_output=True, text=True, timeout=60)
+                logger.info(f"Setup output: {result.stdout}")
+                if result.returncode != 0:
+                    logger.error(f"Setup error: {result.stderr}")
+                _db_setup_done = True
             except Exception as e:
-                logger.error(f"Migration error: {e}", exc_info=True)
-                _migrations_run = True
+                logger.error(f"Setup error: {e}", exc_info=True)
+                _db_setup_done = True
         
         return None
