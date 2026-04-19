@@ -2,11 +2,8 @@ import os
 import sys
 
 def main():
-    ENV = os.getenv('ENV', 'dev')
-    if ENV == "prod":
-        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'src.settings.prod')
-    else:
-        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'src.settings.dev')
+    # Force production settings
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'src.settings.prod')
     
     try:
         from django.core.management import execute_from_command_line
