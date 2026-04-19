@@ -6,41 +6,14 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'src.settings.prod')
 django.setup()
 
 from django.core.management import call_command
-from django.db import connection
 from users.models import Users
 
-print("Creating database tables...")
+print("Running migrations...")
 try:
-    # Drop and recreate tables
-    with connection.cursor() as cursor:
-        cursor.execute("DROP TABLE IF EXISTS users CASCADE;")
-        cursor.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
-        
-        cursor.execute("""
-            CREATE TABLE users (
-                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                password VARCHAR(128),
-                last_login TIMESTAMP WITH TIME ZONE,
-                is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
-                email VARCHAR(100) UNIQUE,
-                phone VARCHAR(20) UNIQUE,
-                "firstName" VARCHAR(100),
-                "lastName" VARCHAR(100),
-                level INTEGER NOT NULL DEFAULT 1,
-                phone_number VARCHAR(20),
-                profile_picture VARCHAR(512),
-                is_active BOOLEAN NOT NULL DEFAULT TRUE,
-                is_staff BOOLEAN NOT NULL DEFAULT FALSE,
-                is_verified BOOLEAN NOT NULL DEFAULT FALSE,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-            );
-        """)
-    
-    print("✓ Tables created")
-    
+    call_command('migrate', verbosity=2, interactive=False)
+    print("✓ Migrations completed")
 except Exception as e:
-    print(f"Table creation error (continuing anyway): {e}")
+    print(f"Migration error: {e}")
 
 print("Creating test user...")
 try:
