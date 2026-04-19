@@ -6,7 +6,10 @@ DEBUG = True
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "backend", "*"]
 CSRF_TRUSTED_ORIGINS = [
     "https://paragenetic-nonclamorously-dominica.ngrok-free.dev",
-    "http://localhost:8000"
+    "http://localhost:8000",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:8080",
 ]
 
 DATABASES = {

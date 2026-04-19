@@ -9,6 +9,13 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
+    "http://localhost:8080",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:8080",
 ]
 
 
@@ -48,6 +55,15 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
-    INSTALLED_APPS.remove('debug_toolbar')
-    MIDDLEWARE.remove("atomicloops.middleware.QueryCountMiddleware",)
-    MIDDLEWARE.remove("debug_toolbar.middleware.DebugToolbarMiddleware")
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    
+    if 'debug_toolbar' in INSTALLED_APPS:
+        INSTALLED_APPS.remove('debug_toolbar')
+    if "atomicloops.middleware.QueryCountMiddleware" in MIDDLEWARE:
+        MIDDLEWARE.remove("atomicloops.middleware.QueryCountMiddleware")
+    if "debug_toolbar.middleware.DebugToolbarMiddleware" in MIDDLEWARE:
+        MIDDLEWARE.remove("debug_toolbar.middleware.DebugToolbarMiddleware")

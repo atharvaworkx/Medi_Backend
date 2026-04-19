@@ -38,7 +38,6 @@ django-prometheus
 django-otp
 pillow
 pillow-heif
-google-generativeai
 bs4
 markdown
 docxtpl

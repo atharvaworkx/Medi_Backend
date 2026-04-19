@@ -74,6 +74,12 @@ class HealthAssessmentReport(AtomicBaseModel):
         default=0,
         db_column='overall_score'
     )
+    healthScores = models.JSONField(
+        verbose_name=_('Health Scores'),
+        default=dict,
+        db_column='health_scores',
+        help_text='{Digestion: %, Immunity: %, Sleep: %, Stress: %, Energy: %}'
+    )
     lastGeneratedAt = models.DateTimeField(
         verbose_name=_('Last Generated At'),
         auto_now_add=True,

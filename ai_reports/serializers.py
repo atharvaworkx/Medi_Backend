@@ -12,12 +12,14 @@ class HealthAssessmentReportSerializer(AtomicSerializer):
         fields = [
             'id', 'createdAt', 'updatedAt', 'userId', 'prakritResult', 'vikritResult',
             'dominantPrakriti', 'dominantVikriti', 'digestiveRisk', 'skinRisk', 'mentalHealthRisk',
-            'imageAnalysisResults', 'overallSummary', 'recommendations', 'riskFlags', 'isCritical', 'overallScore', 'lastGeneratedAt'
+            'imageAnalysisResults', 'overallSummary', 'recommendations', 'riskFlags', 'isCritical', 
+            'overallScore', 'healthScores', 'lastGeneratedAt'
         ]
         get_fields = [
             'id', 'createdAt', 'updatedAt', 'userId', 'prakritResult', 'vikritResult',
             'dominantPrakriti', 'dominantVikriti', 'digestiveRisk', 'skinRisk', 'mentalHealthRisk',
-            'imageAnalysisResults', 'overallSummary', 'recommendations', 'riskFlags', 'isCritical', 'overallScore', 'lastGeneratedAt'
+            'imageAnalysisResults', 'overallSummary', 'recommendations', 'riskFlags', 'isCritical', 
+            'overallScore', 'healthScores', 'lastGeneratedAt'
         ]
         list_fields = [
             'id', 'createdAt', 'updatedAt', 'userId', 'dominantPrakriti', 'dominantVikriti', 'isCritical'
