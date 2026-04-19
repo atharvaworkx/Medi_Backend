@@ -14,8 +14,10 @@ try:
     # Create tables without migrations first
     with connection.cursor() as cursor:
         cursor.execute("""
+            CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+            
             CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                 password VARCHAR(128),
                 last_login TIMESTAMP WITH TIME ZONE,
                 is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
@@ -45,12 +47,8 @@ try:
     
     print("✓ Tables created")
     
-    # Now run migrations
-    call_command('migrate', verbosity=0, interactive=False, fake_initial=True)
-    print("✓ Migrations completed")
-    
 except Exception as e:
-    print(f"Migration error (continuing anyway): {e}")
+    print(f"Table creation error (continuing anyway): {e}")
 
 print("Creating test user...")
 try:
