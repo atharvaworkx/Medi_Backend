@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "import_export",
     "rest_framework_simplejwt.token_blacklist",
+    "src.apps.SrcConfig",
     "users",
     "profiles",
     "medical",
