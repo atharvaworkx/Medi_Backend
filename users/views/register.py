@@ -5,6 +5,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.serializers import UserSignupSerializer
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RegisterView(APIView):
@@ -18,17 +21,23 @@ class RegisterView(APIView):
     authentication_classes = []
 
     def post(self, request, *args, **kwargs):
-        serializer = UserSignupSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            # Auto-generate JWT tokens so user is immediately logged in
-            token = RefreshToken.for_user(user)
-            return Response({
-                'access': str(token.access_token),
-                'refresh': str(token),
-                'userId': str(user.id),
-                'firstName': user.firstName,
-                'lastName': user.lastName,
-                'email': user.email,
-            }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = UserSignupSerializer(data=request.data)
+            if serializer.is_valid():
+                user = serializer.save()
+                token = RefreshToken.for_user(user)
+                return Response({
+                    'access': str(token.access_token),
+                    'refresh': str(token),
+                    'userId': str(user.id),
+                    'firstName': user.firstName,
+                    'lastName': user.lastName,
+                    'email': user.email,
+                }, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Register error: {str(e)}", exc_info=True)
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

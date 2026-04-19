@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 class CustomTokenPairSerializer(TokenObtainPairSerializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+    
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -50,7 +53,7 @@ class CustomTokenPairSerializer(TokenObtainPairSerializer):
         except Users.DoesNotExist:
             raise serializers.ValidationError(_("Invalid email or password"))
         except Exception as e:
-            logger.error(f"Login error: {str(e)}", exc_info=True)
+            logger.error(f"Login validation error: {str(e)}", exc_info=True)
             raise serializers.ValidationError(_("An error occurred during login"))
 
 
@@ -60,11 +63,14 @@ class LoginView(TokenObtainPairView):
     
     def post(self, request, *args, **kwargs):
         try:
-            return super().post(request, *args, **kwargs)
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                return Response(serializer.validated_data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Login view error: {str(e)}", exc_info=True)
             return Response(
-                {"detail": "An error occurred. Please try again."},
+                {"detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
