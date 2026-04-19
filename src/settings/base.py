@@ -98,6 +98,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django_otp.middleware.OTPMiddleware',
+    "src.middleware.MigrationMiddleware",
     "atomicloops.middleware.AtomicSQLInjectionMiddleware",
     "atomicloops.middleware.QueryCountMiddleware",
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -105,9 +106,6 @@ MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     'drf_api_logger.middleware.api_logger_middleware.APILoggerMiddleware',
 ]
-
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOW_CREDENTIALS = True
 ROOT_URLCONF = 'src.urls'
 
 TEMPLATES = [
