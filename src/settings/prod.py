@@ -7,9 +7,9 @@ DEBUG = False
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 CORS_ORIGIN_ALLOW_ALL = False
 
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'https://medi-backend-kezm.onrender.com').split(',')
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'https://medi-backend-vn8a.onrender.com').split(',')
 
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://medi-backend-kezm.onrender.com').split(',')
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://medi-backend-vn8a.onrender.com').split(',')
 
 # Use DATABASE_URL if available (Render provides this)
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://ayupilot_user:J0ONf89tkE82JITlILk8eHdPf53a5L2E@dpg-d7i8ghgsfn5c73e5ka4g-a.ohio-postgres.render.com/ayupilot')
@@ -27,8 +27,8 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
 REGION = os.getenv('REGION', 'us-east-1')
 AWS_URL = f"https://{S3_BUCKET}.s3.{REGION}.amazonaws.com" if S3_BUCKET else ""
 
-FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'https://medi-backend-kezm.onrender.com')
-ADMIN_FRONTEND_BASE_URL = os.getenv('ADMIN_FRONTEND_BASE_URL', 'https://medi-backend-kezm.onrender.com')
+FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'https://medi-backend-vn8a.onrender.com')
+ADMIN_FRONTEND_BASE_URL = os.getenv('ADMIN_FRONTEND_BASE_URL', 'https://medi-backend-vn8a.onrender.com')
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
