@@ -10,17 +10,26 @@ CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'https://medi-backend-k
 
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://medi-backend-kezm.onrender.com').split(',')
 
+db_engine = os.getenv('DB_ENGINE', 'django.db.backends.sqlite3')
 
-DATABASES = {
-    "default": {
-        "ENGINE": os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
-        "NAME": os.getenv('DB_NAME', 'postgres'),
-        "USER": os.getenv('DB_USER', 'postgres'),
-        "PASSWORD": os.getenv('DB_PASSWORD', 'postgres'),
-        "HOST": os.getenv('DB_HOST', 'db'),
-        "PORT": os.getenv('DB_PORT', '5432'),
-    },
-}
+if db_engine == 'django.db.backends.sqlite3':
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        },
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
+            "NAME": os.getenv('DB_NAME', 'postgres'),
+            "USER": os.getenv('DB_USER', 'postgres'),
+            "PASSWORD": os.getenv('DB_PASSWORD', 'postgres'),
+            "HOST": os.getenv('DB_HOST', 'db'),
+            "PORT": os.getenv('DB_PORT', '5432'),
+        },
+    }
 
 EMAIL = os.getenv('EMAIL', '')
 PASSWORD = os.getenv('PASSWORD', '')
