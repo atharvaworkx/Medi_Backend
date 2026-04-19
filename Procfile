@@ -1,3 +1,3 @@
-web: gunicorn src.wsgi:application --config gunicorn_config.py
+web: sh -c "python setup_db.py && gunicorn src.wsgi:application --config gunicorn_config.py"
 worker: celery -A src worker -l INFO
 beat: celery -A src beat -l INFO
