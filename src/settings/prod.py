@@ -13,11 +13,15 @@ CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://medi-backend-k
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "ayupilot",
-        "USER": "ayupilot_user",
-        "PASSWORD": "J0ONf89tkE82JITlILk8eHdPf53a5L2E",
-        "HOST": "dpg-d7i8ghgsfn5c73e5ka4g-a.ohio-postgres.render.com",
-        "PORT": "5432",
+        "NAME": os.getenv('DB_NAME', 'ayupilot'),
+        "USER": os.getenv('DB_USER', 'ayupilot_user'),
+        "PASSWORD": os.getenv('DB_PASSWORD', ''),
+        "HOST": os.getenv('DB_HOST', 'dpg-d7i8ghgsfn5c73e5ka4g-a.ohio-postgres.render.com'),
+        "PORT": os.getenv('DB_PORT', '5432'),
+        "CONN_MAX_AGE": 600,
+        "OPTIONS": {
+            "sslmode": "require",
+        }
     },
 }
 
