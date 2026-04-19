@@ -12,26 +12,11 @@ CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'https://medi-backend-k
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://medi-backend-kezm.onrender.com').split(',')
 
 # Use DATABASE_URL if available (Render provides this)
-if os.getenv('DATABASE_URL'):
-    DATABASES = {
-        'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
-    }
-else:
-    # Fallback to individual environment variables
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv('DB_NAME', 'ayupilot'),
-            "USER": os.getenv('DB_USER', 'ayupilot_user'),
-            "PASSWORD": os.getenv('DB_PASSWORD', 'J0ONf89tkE82JITlILk8eHdPf53a5L2E'),
-            "HOST": os.getenv('DB_HOST', 'dpg-d7i8ghgsfn5c73e5ka4g-a.ohio-postgres.render.com'),
-            "PORT": os.getenv('DB_PORT', '5432'),
-            "CONN_MAX_AGE": 600,
-            "OPTIONS": {
-                "sslmode": "require",
-            }
-        },
-    }
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://ayupilot_user:J0ONf89tkE82JITlILk8eHdPf53a5L2E@dpg-d7i8ghgsfn5c73e5ka4g-a.ohio-postgres.render.com/ayupilot')
+
+DATABASES = {
+    'default': dj_database_url.parse(DATABASE_URL)
+}
 
 EMAIL = os.getenv('EMAIL', '')
 PASSWORD = os.getenv('PASSWORD', '')
