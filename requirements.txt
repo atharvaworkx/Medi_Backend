@@ -51,3 +51,4 @@ requests
 PyPDF2
 sentry-sdk[django]
 ipython
+dj-database-url
