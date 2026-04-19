@@ -7,6 +7,9 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils.translation import gettext_lazy as _
 from users.models import Users
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CustomTokenPairSerializer(TokenObtainPairSerializer):
@@ -17,37 +20,56 @@ class CustomTokenPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, data):
         try:
-            user = Users.objects.get(email=data['email'])
-            if not user.isVerified:
-                raise serializers.ValidationError(_(("User with email %(email)s is not verified. Check your email or contact support.") % {'email': data['email']}))
+            email = data.get('email')
+            password = data.get('password')
             
-            # Simple validation check
-            if not user.check_password(data['password']):
-                 raise serializers.ValidationError(_("Invalid password"))
+            if not email or not password:
+                raise serializers.ValidationError(_("Email and password are required"))
+            
+            user = Users.objects.get(email=email)
+            
+            if not user.isVerified:
+                raise serializers.ValidationError(_("User account is not verified. Please check your email."))
+            
+            if not user.check_password(password):
+                raise serializers.ValidationError(_("Invalid email or password"))
 
-            # Include profile data
             from profiles.models import UserProfile
             profile, _ = UserProfile.objects.get_or_create(userId=user)
             
             token = RefreshToken.for_user(user)
-            res_data = dict()
-            res_data['refresh'] = str(token)
-            res_data['access'] = str(token.access_token)
-            res_data['userId'] = str(user.id)
-            res_data['firstName'] = user.firstName
-            res_data['lastName'] = user.lastName
-            res_data['email'] = user.email
-            res_data['phone'] = user.phone or ""
-            res_data['age'] = profile.age
-            res_data['gender'] = profile.gender
+            res_data = {
+                'refresh': str(token),
+                'access': str(token.access_token),
+                'userId': str(user.id),
+                'firstName': user.firstName or '',
+                'lastName': user.lastName or '',
+                'email': user.email,
+                'phone': user.phone or '',
+                'age': profile.age or 0,
+                'gender': profile.gender or '',
+            }
             return res_data
         except Users.DoesNotExist:
-            raise serializers.ValidationError(_(("User with email %(email)s does not exist") % {'email': data['email']}))
+            raise serializers.ValidationError(_("Invalid email or password"))
+        except Exception as e:
+            logger.error(f"Login error: {str(e)}")
+            raise serializers.ValidationError(_("An error occurred during login"))
 
 
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenPairSerializer
     permission_classes = [AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Login view error: {str(e)}")
+            return Response(
+                {"detail": "An error occurred. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class AdminLoginView(TokenObtainPairView):
@@ -55,17 +77,24 @@ class AdminLoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
         try:
+            serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
-        user = Users.objects.get(email=request.data['email'])
-        if not user.is_staff and not user.is_superuser:
-            return Response({"detail": "Only admins can login here"}, status=status.HTTP_403_FORBIDDEN)
             
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+            user = Users.objects.get(email=request.data.get('email'))
+            if not user.is_staff and not user.is_superuser:
+                return Response(
+                    {"detail": "Only admins can login here"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Admin login error: {str(e)}")
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class LogoutView(APIView):
@@ -73,9 +102,18 @@ class LogoutView(APIView):
 
     def post(self, request):
         try:
-            refresh_token = request.data["refresh"]
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response(
+                    {"detail": "Refresh token is required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response(status=status.HTTP_205_RESET_CONTENT)
-        except Exception:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Logout error: {str(e)}")
+            return Response(
+                {"detail": "Logout failed"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
