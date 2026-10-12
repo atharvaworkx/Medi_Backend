@@ -158,6 +158,10 @@ The Flutter flow is:
 
 The API key is read at runtime from `GROK_API_KEY`; never place the key in the
 Flutter app or in this repository.
+
+`DATABASE_URL` may point to Neon PostgreSQL. Use the complete Neon connection
+string with `sslmode=require`; the Neon CLI and `neon.ts` are not needed for
+this Django backend.
 ./run.sh interactive-dev
 pip install <package_name>
 pip freeze > requirements.txt
