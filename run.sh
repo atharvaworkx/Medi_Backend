@@ -1,45 +1,33 @@
 #!/bin/bash
-modes="  start-dev\n  stop-dev\n  start-prod\n  stop-prod\n  interactive-dev\n  interactive-prod\n  check-syntax\n  start-deploy\n  migrate\n  sync-vault\n  check-setup\n  db-backup"
+modes="  start-dev\n  start-prod\n  check-syntax\n  start-deploy\n  migrate\n  sync-vault\n  check-setup\n  db-backup"
 mode=$1
-project_name="ayupilot"
-
-if [ "$project_name" == "*****" ]; then
-    echo "Please Update the Project Name in run.sh"
-    exit 0;
-fi
 
 if [ "$mode" == "" ]; then
     echo -e $"Invalid mode \nPlease enter one of the following mode:\n${modes}"
 elif [ "$mode" == "start-dev" ]; then
-    if [ ! -f src/vault.py ]; then
-        echo -e "vault file not found! \nPlease download the it.\nRefer the README for more information."
-        exit 1;
-    fi
-    docker-compose -p ${project_name}-dev -f docker-compose-dev.yml build
-    docker-compose -p ${project_name}-dev -f docker-compose-dev.yml up -d
-elif [ "$mode" == "stop-dev" ]; then
-    docker-compose -p ${project_name}-dev -f docker-compose-dev.yml down
-elif [ "$mode" == "interactive-dev" ]; then
-    docker exec -it --user root ${project_name}-backend bash
+    export DJANGO_SETTINGS_MODULE=src.settings.dev
+    export ENV=dev
+    python manage.py migrate
+    python manage.py runserver 0.0.0.0:8000
 elif [ "$mode" == "start-prod" ]; then
-    if [ ! -f src/vault.py ]; then
-        echo -e "vault file not found! \nPlease download the it.\nRefer the README for more information."
-        exit 1;
-    fi
-    docker-compose -p ${project_name}-prod build
-    docker-compose -p ${project_name}-prod up -d
-elif [ "$mode" == "stop-prod" ]; then
-    docker-compose -p ${project_name}-prod down
-elif [ "$mode" == "interactive-prod" ]; then
-    docker exec -it --user root ${project_name}-backend bash
+    export DJANGO_SETTINGS_MODULE=src.settings.prod
+    export ENV=prod
+    python manage.py migrate --noinput
+    python manage.py collectstatic --noinput
+    exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120 src.wsgi:application
 elif [ "$mode" == "check-syntax" ]; then
-    docker exec -it --user root ${project_name}-backend flake8 .
+    flake8 .
+elif [ "$mode" == "start-deploy" ]; then
+    python manage.py migrate --noinput
+    python manage.py collectstatic --noinput
 elif [ "$mode" == "sync-vault" ]; then
-    docker exec -it --user root ${project_name}-backend python manage.py sync-vault
+    python manage.py sync-vault
 elif [ "$mode" == "check-setup" ]; then
-    docker exec -it --user root ${project_name}-backend python manage.py check-setup
+    python manage.py check_setup
 elif [ "$mode" == "db-backup" ]; then
-    docker exec -it --user root ${project_name}-backend python manage.py db-backup
+    python manage.py db-backup
+elif [ "$mode" == "migrate" ]; then
+    python manage.py migrate
 else
     echo -e $"Invalid mode \nPlease enter one of the following mode:\n${modes}"
 fi

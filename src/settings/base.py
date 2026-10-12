@@ -217,7 +217,7 @@ DJANGO_REST_PASSWORDRESET_TOKEN_CONFIG = {
 SWAGGER_USE_COMPAT_RENDERERS = False
 
 # RabbitMQ configuration
-CELERY_BROKER_URL = 'amqp://admin:admin@rabbit-mq'
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', '')
 
 # periodic tasks
 if crontab:
@@ -234,7 +234,7 @@ else:
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis:6379/1",
+        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/1"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient"
         },

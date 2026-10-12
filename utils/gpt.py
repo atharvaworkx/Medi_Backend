@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import base64
 from django.conf import settings
 import requests
 from PIL import Image
@@ -34,7 +35,7 @@ def generate_health_assessment(quiz_data, image_urls):
 
         prompt = _construct_health_prompt(quiz_data)
         
-        messages = [{"role": "user", "content": prompt}]
+        content = [{"type": "text", "text": prompt}]
         
         for img_type, url in image_urls.items():
             if url:
@@ -43,7 +44,15 @@ def generate_health_assessment(quiz_data, image_urls):
                     if response.status_code == 200:
                         img = Image.open(BytesIO(response.content))
                         img_base64 = _image_to_base64(img)
-                        messages[0]["content"] += f"\n\nImage of {img_type} (base64): {img_base64[:100]}..."
+                        content.extend([
+                            {"type": "text", "text": f"Image of {img_type}:"},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/png;base64,{img_base64}",
+                                },
+                            },
+                        ])
                 except Exception as e:
                     logger.error(f"Failed to load image from {url}: {e}")
 
@@ -54,7 +63,7 @@ def generate_health_assessment(quiz_data, image_urls):
         
         payload = {
             "model": "grok-2-vision-1212",
-            "messages": messages,
+            "messages": [{"role": "user", "content": content}],
             "temperature": 0.7,
             "max_tokens": 4096
         }
@@ -88,7 +97,6 @@ def generate_health_assessment(quiz_data, image_urls):
 
 def _image_to_base64(img):
     """Convert PIL Image to base64 string"""
-    import base64
     buffered = BytesIO()
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode('utf-8')

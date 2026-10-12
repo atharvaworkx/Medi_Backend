@@ -58,7 +58,7 @@ project_name/
 ├── locale/                    # Internationalization files
 ├── requirements.txt           # Python dependencies
 ├── manage.py                  # Django management script
-└── docker-compose.yml         # Docker configuration
+└── Procfile                   # Native Railway process configuration
 ```
 
 ## Coding Guidelines
@@ -577,7 +577,7 @@ credentials = {
         "DB_NAME": "defaultdb",
         "DB_USER": "avnadmin", 
         "DB_PASSWORD": "your_password",
-        "DB_HOST": "host.docker.internal",
+        "DB_HOST": "localhost",
         "DB_PORT": "15432",
         "EMAIL": "atomic.automail@gmail.com",
         "PASSWORD": "app_password",
@@ -1345,4 +1345,3 @@ class YourModelAdmin(admin.ModelAdmin):
 
 - [ ]  Ensure `admin.py` is included in the app directory before creating migrations
 - [ ]  Run quick smoke check by logging into Django admin locally to verify models appear
-

@@ -111,11 +111,9 @@ Note :- Update the urls for Lastest Section when you sync the vault file.
 
 [Atomicloops Custom Commands python](https://drive.google.com/file/d/1dKK_Eo-7OAAFYTrEtS_N5pQGDLK06Y-a/view?usp=share_link)
 
-### 7. Makemigrations and Create Table
+### 7. Create the database tables
 
 ```
-./run.sh start-dev
-./run.sh interactive-dev
 python manage.py makemigrations
 python manage.py migrate
 ```
@@ -137,6 +135,29 @@ To Add Secret key add the variable to vault file.
 ### 10. How to add new libraries
 Bash scripts
 ```
+
+## Production deployment configuration
+
+Set these values in the deployment platform's secret/environment settings; do not
+commit them to `.env` or source control:
+
+- `ENV=prod`
+- `DJANGO_SECRET_KEY`
+- `DATABASE_URL`
+- `ALLOWED_HOSTS`
+- `GROK_API_KEY` (the xAI key used for report generation)
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_STORAGE_BUCKET_NAME`, and
+  `AWS_S3_REGION_NAME` for image uploads
+
+The Flutter flow is:
+
+1. POST image metadata to `api/v1/images/request_upload_url/`.
+2. Upload the file with HTTP `PUT` to the returned `uploadUrl`, preserving the
+   returned `Content-Type`.
+3. POST to `api/v1/reports/generate_report/` after all images are uploaded.
+
+The API key is read at runtime from `GROK_API_KEY`; never place the key in the
+Flutter app or in this repository.
 ./run.sh interactive-dev
 pip install <package_name>
 pip freeze > requirements.txt
@@ -148,7 +169,7 @@ Python scripts
 source venv/bin/activate
 pip install <package_name>
 pip freeze > requirements.txt
-python manage.py run --mode start-dev
+./run.sh start-dev
 ```
 
 TODO:

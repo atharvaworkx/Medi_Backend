@@ -23,5 +23,5 @@ class HealthImageSerializer(AtomicSerializer):
 class ImageUploadInitSerializer(serializers.Serializer):
     imageType = serializers.ChoiceField(choices=['iris', 'tongue', 'hair', 'skin'])
     fileName = serializers.CharField(max_length=255)
-    fileSize = serializers.IntegerField()
-    contentType = serializers.CharField(max_length=50)
+    fileSize = serializers.IntegerField(min_value=1)
+    contentType = serializers.ChoiceField(choices=['image/jpeg', 'image/png'])
