@@ -1,7 +1,7 @@
+import base64
 import os
 import json
 import logging
-import base64
 from django.conf import settings
 import requests
 from PIL import Image
@@ -24,7 +24,7 @@ if GROK_API_KEY:
 else:
     logger.warning("GROK_API_KEY not found in environment or vault")
 
-def generate_health_assessment(quiz_data, image_urls):
+def generate_health_assessment(quiz_data, images):
     """
     Main function to generate health assessment report using Grok AI.
     Analyzes quiz answers and uploaded health images.
@@ -37,24 +37,20 @@ def generate_health_assessment(quiz_data, image_urls):
         
         content = [{"type": "text", "text": prompt}]
         
-        for img_type, url in image_urls.items():
-            if url:
-                try:
-                    response = requests.get(url, timeout=10)
-                    if response.status_code == 200:
-                        img = Image.open(BytesIO(response.content))
-                        img_base64 = _image_to_base64(img)
-                        content.extend([
-                            {"type": "text", "text": f"Image of {img_type}:"},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/png;base64,{img_base64}",
-                                },
-                            },
-                        ])
-                except Exception as e:
-                    logger.error(f"Failed to load image from {url}: {e}")
+        for img_type, image_data in images.items():
+            if image_data:
+                image_bytes, content_type = image_data
+                img = Image.open(BytesIO(image_bytes))
+                img_base64 = _image_to_base64(img)
+                content.extend([
+                    {"type": "text", "text": f"Image of {img_type}:"},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{content_type};base64,{img_base64}",
+                        },
+                    },
+                ])
 
         headers = {
             "Authorization": f"Bearer {GROK_API_KEY}",

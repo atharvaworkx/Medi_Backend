@@ -36,13 +36,28 @@ class HealthImage(AtomicBaseModel):
     imageUrl = models.URLField(
         verbose_name=_('Image URL'),
         max_length=512,
-        db_column='image_url'
+        db_column='image_url',
+        blank=True,
+        null=True,
     )
     s3Key = models.CharField(
         verbose_name=_('S3 Key'),
         max_length=512,
         db_column='s3_key',
         null=True
+    )
+    imageData = models.BinaryField(
+        verbose_name=_('Image Data'),
+        db_column='image_data',
+        null=True,
+        editable=False,
+    )
+    contentType = models.CharField(
+        verbose_name=_('Content Type'),
+        max_length=50,
+        db_column='content_type',
+        null=True,
+        blank=True,
     )
     fileSize = models.IntegerField(
         verbose_name=_('File Size (bytes)'),

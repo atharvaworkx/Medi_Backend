@@ -1,6 +1,3 @@
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
-from django.conf import settings
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -137,16 +134,17 @@ class HealthAssessmentViewSet(viewsets.ModelViewSet):
 
             # 2. Fetch User Images
             health_images = HealthImage.objects.filter(userId=user)
-            image_urls = {
-                img.imageType: self._get_image_url(img)
+            images = {
+                img.imageType: (bytes(img.imageData), img.contentType)
                 for img in health_images
+                if img.imageData and img.contentType
             }
-            image_types = list(image_urls.keys())
+            image_types = list(images.keys())
 
             # 3. Call AI Service
             report_data = None
             try:
-                report_data = generate_health_assessment(quiz_data, image_urls)
+                report_data = generate_health_assessment(quiz_data, images)
             except Exception as ai_e:
                 logger.error(f"AI generation failed: {ai_e}")
 
@@ -187,24 +185,6 @@ class HealthAssessmentViewSet(viewsets.ModelViewSet):
                 'error': str(e),
                 'report': serializer.data
             }, status=status.HTTP_200_OK)
-
-    @staticmethod
-    def _get_image_url(image):
-        bucket = getattr(settings, 'AWS_STORAGE_BUCKET_NAME', '')
-        if bucket and image.s3Key:
-            try:
-                client = boto3.client(
-                    's3',
-                    region_name=getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1'),
-                )
-                return client.generate_presigned_url(
-                    'get_object',
-                    Params={'Bucket': bucket, 'Key': image.s3Key},
-                    ExpiresIn=900,
-                )
-            except (BotoCoreError, ClientError):
-                logger.exception("Could not create image read URL")
-        return image.imageUrl
 
     @action(detail=False, methods=['post'])
     def generate_report_nails(self, request):

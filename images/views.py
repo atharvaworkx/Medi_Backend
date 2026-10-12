@@ -1,15 +1,15 @@
-import uuid
 import logging
-from pathlib import PurePath
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
+
 from django.conf import settings
-from rest_framework import viewsets, status
+from PIL import Image
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.response import Response
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
 from images.models import HealthImage
-from images.serializers import HealthImageSerializer, ImageUploadInitSerializer
+from images.serializers import HealthImageSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -21,76 +21,80 @@ class HealthImageViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return HealthImage.objects.filter(userId=self.request.user)
 
-    @action(detail=False, methods=['post'])
-    def request_upload_url(self, request):
-        """Request pre-signed S3 upload URL"""
-        serializer = ImageUploadInitSerializer(data=request.data)
-        if not serializer.is_valid():
+    @action(
+        detail=False,
+        methods=['post'],
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def upload(self, request):
+        """Store an image directly in PostgreSQL."""
+        image_type = request.data.get('imageType')
+        image_file = request.FILES.get('file')
+        allowed_types = {'iris', 'tongue', 'hair', 'skin'}
+        allowed_content_types = {'image/jpeg', 'image/png'}
+        max_size = getattr(settings, 'MAX_IMAGE_SIZE', 10 * 1024 * 1024)
+
+        if image_type not in allowed_types:
             return Response(
-                {'status': 'error', 'errors': serializer.errors},
+                {'status': 'error', 'message': 'Invalid imageType'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        bucket = getattr(settings, 'AWS_STORAGE_BUCKET_NAME', '')
-        region = getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1')
-        if not bucket:
+        if not image_file:
             return Response(
-                {'status': 'error', 'message': 'Image storage is not configured'},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                {'status': 'error', 'message': 'A file field is required'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-
-        image_type = serializer.validated_data['imageType']
-        file_name = PurePath(serializer.validated_data['fileName']).name
-        content_type = serializer.validated_data['contentType']
-        file_size = serializer.validated_data['fileSize']
-        max_image_size = getattr(settings, 'MAX_IMAGE_SIZE', 10 * 1024 * 1024)
-        if file_size <= 0 or file_size > max_image_size:
+        if image_file.content_type not in allowed_content_types:
+            return Response(
+                {'status': 'error', 'message': 'Only JPEG and PNG images are supported'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if image_file.size <= 0 or image_file.size > max_size:
             return Response(
                 {'status': 'error', 'message': 'Image exceeds the allowed size'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        key = f"health-images/{request.user.id}/{uuid.uuid4()}-{file_name}"
+        image_bytes = image_file.read()
         try:
-            client = boto3.client('s3', region_name=region)
-            upload_url = client.generate_presigned_url(
-                'put_object',
-                Params={'Bucket': bucket, 'Key': key, 'ContentType': content_type},
-                ExpiresIn=900,
-            )
-        except (BotoCoreError, ClientError):
-            logger.exception("Could not create S3 upload URL")
+            image_file.seek(0)
+            with Image.open(image_file) as image:
+                image.verify()
+        except Exception:
             return Response(
-                {'status': 'error', 'message': 'Could not prepare image upload'},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                {'status': 'error', 'message': 'Invalid image file'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        image_url = f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
         image = HealthImage.objects.create(
             userId=request.user,
             imageType=image_type,
-            imageUrl=image_url,
-            s3Key=key,
-            fileSize=file_size,
+            imageUrl=None,
+            fileSize=len(image_bytes),
+            imageData=image_bytes,
+            contentType=image_file.content_type,
             processingStatus='pending',
         )
-        return Response({
-            'status': 'success',
-            'imageId': str(image.id),
-            'uploadUrl': upload_url,
-            'imageUrl': image_url,
-            'expiresIn': 900,
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                'status': 'success',
+                'imageId': str(image.id),
+                'imageType': image.imageType,
+                'fileSize': image.fileSize,
+                'contentType': image.contentType,
+                'processingStatus': image.processingStatus,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(detail=False, methods=['get'])
     def by_type(self, request):
-        """Get images by type"""
         image_type = request.query_params.get('type')
         if image_type:
             images = self.get_queryset().filter(imageType=image_type)
             serializer = self.get_serializer(images, many=True, context={'request': request})
-            return Response({
-                'status': 'success',
-                'images': serializer.data
-            })
-        return Response({'status': 'error', 'message': 'Type parameter required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'success', 'images': serializer.data})
+        return Response(
+            {'status': 'error', 'message': 'Type parameter required'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
